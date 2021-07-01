@@ -1,5 +1,7 @@
 import datetime
 import os
+import typing
+from enum import Enum
 
 import discord
 import ujson
@@ -13,6 +15,13 @@ def yesno_friendly_str(bool_to_convert):
         return "yes"
     else:
         return "no"
+
+
+class Status(Enum):
+    ALIVE = discord.Color(3062497)
+    DEAD = discord.Color.red()
+    ESCAPED = discord.Color.lighter_gray()
+    HOST = discord.Color.darker_gray()
 
 
 class SetField(fields.BinaryField, set):
@@ -40,6 +49,29 @@ class SetField(fields.BinaryField, set):
             # the reason why i chose using BinaryField over JSONField
             # was because orjson returns bytes, and orjson's fast
         return value
+
+
+class StatusEnumField(fields.IntField, Status):
+    """
+    An extension to CharField that allows storing Statuses.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(False, **kwargs)
+        self._enum_type = Status
+
+    def to_db_value(self, value: typing.Type[Status], instance) -> int:
+        return value.value.value  # get the enum value, then get the value of the color
+
+    def to_python_value(self, value: int) -> typing.Type[Status]:
+        try:
+            return self._enum_type(discord.Color(value))
+        except Exception:
+            raise ValueError(
+                "Database value {} does not exist on Enum {}.".format(
+                    value, self._enum_type
+                )
+            )
 
 
 class TruthBullet(Model):
@@ -80,6 +112,48 @@ class TruthBullet(Model):
         embed.set_footer(text=footer)
 
         return embed
+
+
+class Card(Model):
+    id = fields.IntField(pk=True)
+    guild_id = fields.BigIntField()
+    user_id = fields.BigIntField()
+    oc_name = fields.CharField(max_length=100)
+    oc_talent = fields.CharField(max_length=100)
+    card_url = fields.TextField()
+    _status = StatusEnumField()
+
+    @property
+    def mention(self):
+        return f"<@{self.user_id}>"
+
+    @property
+    def title_name(self):
+        return f"{self.oc_name}, the Ultimate {self.oc_talent}"
+
+    @property
+    def status(self):
+        return self._status.name if self._status != Status.HOST else "ALIVE"
+
+    async def as_embed(self, bot: discord.Client):
+        member = await bot.fetch_user(
+            self.user_id
+        )  # we're assuming this will never fail because i double check everything
+        embed = discord.Embed(
+            title=self.title_name,
+            description=f"By: {member.mention} ({str(member)})\nStatus: **{self.status}**",
+        )
+        embed.set_image(url=self.card_url)
+        embed.color = self._status.value
+
+        return embed
+
+
+class UserInteraction(Model):
+    id: int = fields.IntField(pk=True)
+    guild_id = fields.BigIntField()
+    user_id = fields.BigIntField()
+    interactions = fields.DecimalField(4, 1)
 
 
 class Config(Model):

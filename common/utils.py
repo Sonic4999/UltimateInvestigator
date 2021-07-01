@@ -2,6 +2,8 @@
 import collections
 import logging
 import traceback
+from decimal import Decimal
+from decimal import InvalidOperation
 from pathlib import Path
 
 import aiohttp
@@ -209,6 +211,17 @@ def role_check(ctx: commands.Context, role: discord.Role):
         )
 
 
+def error_embed_generate(error_msg):
+    return discord.Embed(colour=discord.Colour.red(), description=error_msg)
+
+
+def add_decimal_value(ori_value, add):
+    if not isinstance(add, Decimal):
+        return str(Decimal(ori_value) + Decimal(add))
+    else:
+        return str(Decimal(ori_value) + add)
+
+
 class CustomCheckFailure(commands.CheckFailure):
     # custom classs for custom prerequisite failures outside of normal command checks
     pass
@@ -231,3 +244,23 @@ class ValidChannelConverter(commands.TextChannelConverter):
             raise commands.BadArgument(f"Cannot send embeds in {chan.name}.")
 
         return chan
+
+
+class DecimalConverter(commands.Converter):
+    async def convert(self, ctx: commands.Context, argument: str) -> Decimal:
+        try:
+            return Decimal(argument)
+        except InvalidOperation:
+            raise commands.BadArgument("This is not a decimal!")
+
+
+class UsableIDConverter(commands.IDConverter):
+    """The internal ID converter, but usable.
+    Will be replaced by the ObjectConverter in d.py 2.0."""
+
+    async def convert(self, ctx: commands.Context, argument: str):
+        match = self._get_id_match(argument)
+        try:
+            return int(match.group(1))
+        except:
+            raise commands.MessageNotFound(argument)
