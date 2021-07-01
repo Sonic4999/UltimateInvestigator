@@ -12,7 +12,7 @@ Setup instructions may come sooner or later.
 
 If you wish to invite the bot, join the Support Server linked below and DM me. Can't let the thing grow exponentially.
 
-Environment vars: `MAIN_TOKEN`, `DIRECTORY_OF_FILE`, `LOG_FILE_PATH`, `JISHAKU_NO_UNDERSCORE=true` (last one is optional).
+Environment vars: `MAIN_TOKEN`, `DIRECTORY_OF_FILE`, `LOG_FILE_PATH`, `BOT_COLOR`, `JISHAKU_NO_UNDERSCORE=true` (last one is optional).
 
 Links:
 * [Join Support Server](https://discord.gg/NSdetwGjpK)

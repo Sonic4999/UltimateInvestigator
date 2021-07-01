@@ -1,4 +1,5 @@
 import importlib
+import os
 import time
 
 import discord
@@ -45,17 +46,13 @@ class OtherCMDs(commands.Cog, name="Other"):
         """Gives information about the bot."""
 
         msg_list = [
-            "Hi! I'm the Ultimate Investigator, a bot meant to help out with investigations with Danganronpa RPs.",
-            "Niche, I know, but it was a demand, as otherwise, you would have to do it all manually.",
+            "Hi! I'm the Ultimate Helper, a bot meant to help out with Danganronpa KG RPs.",
+            "Niche use, I know, but it has a demand.",
             "",
-            "This bot was originally a series of custom commands in YAGPDB, but soon the commands grew too complex for it.",
-            "Still would recommend YAG, though. Just don't squeeze it to its limits.",
-            "",
-            (
-                "Also, in case you were wondering, the reason why I don't just use the Ultimate Assistant is because most people, "
-                + "quite frankly, don't need everything the Ultimate Assistant has. It's also rather bloated and cumbersome, in my opinion."
-            ),
-            "",
+            "Right now, this bot handles auto announcements, cards, Truth Bullets, and voting.",
+            "Unlike a certain other bot, you can use what you want and ignore the rest.",
+            "I don't intend on making this bloated.",
+            ""
             "If you wish to invite me, contact Sonic49 and he'll talk to you about it.",
             "If you need support for me, maybe take a look at the support server here:\nhttps://discord.gg/NSdetwGjpK",
             "",
@@ -63,9 +60,7 @@ class OtherCMDs(commands.Cog, name="Other"):
         ]
 
         about_embed = discord.Embed(
-            title="About",
-            colour=discord.Colour(14232643),
-            description="\n".join(msg_list),
+            title="About", colour=self.bot.color, description="\n".join(msg_list),
         )
         about_embed.set_author(
             name=f"{self.bot.user.name}",

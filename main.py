@@ -28,7 +28,7 @@ handler.setFormatter(
 logger.addHandler(handler)
 
 
-async def investigator_prefixes(bot: commands.Bot, msg: discord.Message):
+async def helper_prefixes(bot: commands.Bot, msg: discord.Message):
     mention_prefixes = {f"{bot.user.mention} ", f"<@!{bot.user.id}> "}
 
     try:
@@ -76,7 +76,7 @@ async def on_init_load():
             pass
 
 
-class UltimateInvestigator(commands.Bot):
+class UltimateHelper(commands.Bot):
     def __init__(
         self,
         command_prefix,
@@ -120,7 +120,7 @@ class UltimateInvestigator(commands.Bot):
 
     async def on_resumed(self):
         activity = discord.Activity(
-            name="for Truth Bullets", type=discord.ActivityType.watching
+            name="for despair", type=discord.ActivityType.watching
         )
         await self.change_presence(activity=activity)
 
@@ -145,14 +145,17 @@ class UltimateInvestigator(commands.Bot):
         return await super().close()  # this will complain a bit, just ignore it
 
 
-# honestly don't think i need the members stuff
-intents = discord.Intents.default()
+intents = discord.Intents(
+    guilds=True, members=True, emojis=True, messages=True, reactions=True
+)
 mentions = discord.AllowedMentions.all()
 
-bot = UltimateInvestigator(
-    command_prefix=investigator_prefixes, allowed_mentions=mentions, intents=intents,
+bot = UltimateHelper(
+    command_prefix=helper_prefixes, allowed_mentions=mentions, intents=intents,
 )
 
 bot.init_load = True
+bot.color = discord.Color(int(os.environ.get("BOT_COLOR")))  # #D92C43, aka 14232643
+
 bot.loop.create_task(on_init_load())
 bot.run(os.environ.get("MAIN_TOKEN"))

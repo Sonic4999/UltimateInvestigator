@@ -53,7 +53,7 @@ class BulletConfigCMDs(commands.Cog, name="Bullet Config"):
             embed = discord.Embed(
                 title=f"Server config for {ctx.guild.name}",
                 description="\n".join(str_builder),
-                color=14232643,
+                color=self.bot.color,
             )
         await ctx.reply(embed=embed)
 

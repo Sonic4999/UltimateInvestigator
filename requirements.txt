@@ -6,3 +6,4 @@ humanize==3.9.0
 websockets==9.1
 python-dotenv==0.18.0
 ujson==4.0.2
+discord-py-slash-command~=2.2.0

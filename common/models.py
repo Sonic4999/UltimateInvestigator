@@ -1,4 +1,5 @@
 import datetime
+import os
 
 import discord
 import ujson
@@ -69,7 +70,7 @@ class TruthBullet(Model):
         embed = discord.Embed(
             title="Truth Bullet Discovered",
             timestamp=datetime.datetime.utcnow(),
-            color=14232643,
+            color=discord.Color(int(os.environ.get("BOT_COLOR"))),
         )
         embed.description = (
             f"`{self.name}` - from {self.chan_mention()}\n\n{self.description}"

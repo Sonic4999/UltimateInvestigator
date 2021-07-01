@@ -1,9 +1,34 @@
 import asyncio
+import typing
+import uuid
+from dataclasses import dataclass
+from dataclasses import field
 
 import discord
 from discord.ext.commands import Paginator as CommandPaginator
+from discord_slash import ButtonStyle
+from discord_slash import ComponentContext
+from discord_slash import manage_components
 
 # most of this code has been copied from https://github.com/Rapptz/RoboDanny
+
+
+def gen_uuid():
+    return str(uuid.uuid4())
+
+
+@dataclass
+class ReactionEmoji:
+    """An easy to use wrapper around reactions."""
+
+    emoji: str
+    function: typing.Callable
+    uuid: str = field(default_factory=gen_uuid)
+
+    def to_button(self):
+        return manage_components.create_button(
+            style=ButtonStyle.primary, emoji=self.emoji, custom_id=self.uuid
+        )
 
 
 class CannotPaginate(Exception):
@@ -41,6 +66,8 @@ class Pages:
         self.context = ctx
         self.entries = entries
         self.message = ctx.message
+        self.component_context: typing.Optional[ComponentContext] = None
+        self.actionrows: typing.List[dict] = []
         self.channel = ctx.channel
         self.author = ctx.author
         self.per_page = per_page
@@ -48,23 +75,17 @@ class Pages:
         if left_over:
             pages += 1
         self.maximum_pages = pages
-        self.embed = discord.Embed(colour=discord.Colour(14232643))
+        self.embed = discord.Embed(colour=discord.Colour(0x4378FC))
         self.paginating = len(entries) > per_page
         self.show_entry_count = show_entry_count
         self.reaction_emojis = [
-            (
-                "\N{BLACK LEFT-POINTING DOUBLE TRIANGLE WITH VERTICAL BAR}",
-                self.first_page,
-            ),
-            ("\N{BLACK LEFT-POINTING TRIANGLE}", self.previous_page),
-            ("\N{BLACK RIGHT-POINTING TRIANGLE}", self.next_page),
-            (
-                "\N{BLACK RIGHT-POINTING DOUBLE TRIANGLE WITH VERTICAL BAR}",
-                self.last_page,
-            ),
-            ("\N{INPUT SYMBOL FOR NUMBERS}", self.numbered_page),
-            ("\N{BLACK SQUARE FOR STOP}", self.stop_pages),
-            ("\N{INFORMATION SOURCE}", self.show_help),
+            ReactionEmoji("⏮️", self.first_page),
+            ReactionEmoji("◀️", self.previous_page),
+            ReactionEmoji("▶️", self.next_page),
+            ReactionEmoji("⏭️", self.last_page),
+            ReactionEmoji("🔢", self.numbered_page),
+            ReactionEmoji("⏹️", self.stop_pages),
+            ReactionEmoji("ℹ️", self.show_help),
         ]
 
         if ctx.guild is not None:
@@ -129,18 +150,31 @@ class Pages:
             return await self.context.reply(content=content, embed=embed)
 
         if not first:
-            await self.message.edit(content=content, embed=embed)
-            return
+            return await self.component_context.edit_origin(
+                content=content, embed=embed
+            )
 
-        self.message = await self.context.reply(content=content, embed=embed)
-        for (reaction, _) in self.reaction_emojis:
-            if self.maximum_pages == 2 and reaction in ("\u23ed", "\u23ee"):
+        buttons = []
+        gone_once = False
+
+        for index, reaction in enumerate(self.reaction_emojis):
+            if index > 3 and not gone_once:
+                self.actionrows.append(manage_components.create_actionrow(*buttons))
+                buttons.clear()
+                gone_once = True
+
+            if self.maximum_pages == 2 and reaction.emoji in ("⏮️", "⏭️"):
                 # no |<< or >>| buttons if we only have two pages
                 # we can't forbid it if someone ends up using it but remove
                 # it from the default set
                 continue
 
-            await self.message.add_reaction(reaction)
+            buttons.append(reaction.to_button())
+        self.actionrows.append(manage_components.create_actionrow(*buttons))
+
+        self.message = await self.context.reply(
+            content=content, embed=embed, components=self.actionrows
+        )
 
     async def checked_show_page(self, page):
         if page != 0 and page <= self.maximum_pages:
@@ -209,8 +243,8 @@ class Pages:
             "reactions. They are as follows:\n"
         )
 
-        for (emoji, func) in self.reaction_emojis:
-            messages.append(f"{emoji} {func.__doc__}")
+        for reaction in self.reaction_emojis:
+            messages.append(f"{reaction.emoji} {reaction.function.__doc__}")
 
         embed = self.embed.copy()
         embed.clear_fields()
@@ -218,7 +252,7 @@ class Pages:
         embed.set_footer(
             text=f"We were on page {self.current_page} before this message."
         )
-        await self.message.edit(content=None, embed=embed)
+        await self.component_context.edit_origin(content=None, embed=embed)
 
         async def go_back_to_current_page():
             await asyncio.sleep(60.0)
@@ -228,27 +262,28 @@ class Pages:
 
     async def stop_pages(self):
         """stops the interactive pagination session"""
-        await self.message.edit(
-            content="The help command has stopped running.", embed=None
-        )
         try:
-            await self.message.clear_reactions()
+            await self.component_context.edit_origin(
+                content="The help command has stopped running.",
+                embed=None,
+                components=[],
+            )
         except:
             pass
         finally:
             self.paginating = False
 
-    def react_check(self, payload):
-        if payload.user_id != self.author.id:
+    def react_check(self, ctx: ComponentContext):
+        if ctx.author_id != self.author.id:
             return False
 
-        if payload.message_id != self.message.id:
+        if ctx.origin_message_id != self.message.id:
             return False
 
-        to_check = str(payload.emoji)
-        for (emoji, func) in self.reaction_emojis:
-            if to_check == emoji:
-                self.match = func
+        to_check = ctx.custom_id
+        for reaction in self.reaction_emojis:
+            if to_check == reaction.uuid:
+                self.match = reaction.function
                 return True
         return False
 
@@ -263,24 +298,19 @@ class Pages:
 
         while self.paginating:
             try:
-                payload = await self.bot.wait_for(
-                    "raw_reaction_add", check=self.react_check, timeout=120.0
+                ctx: ComponentContext = await self.bot.wait_for(
+                    "component", check=self.react_check, timeout=120.0
                 )
+                await ctx.defer(edit_origin=True)  # so we don't error out
+                self.component_context = ctx
             except asyncio.TimeoutError:
                 self.paginating = False
                 try:
-                    await self.message.clear_reactions()
+                    await self.component_context.edit_origin(components=[])
                 except:
                     pass
                 finally:
                     break
-
-            try:
-                await self.message.remove_reaction(
-                    payload.emoji, discord.Object(id=payload.user_id)
-                )
-            except:
-                pass  # can't remove it so don't bother doing so
 
             await self.match()
 

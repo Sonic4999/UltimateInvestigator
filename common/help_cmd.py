@@ -14,9 +14,7 @@ import common.paginator as paginator
 class HelpPaginator(paginator.Pages):
     def __init__(self, help_command, ctx, entries, *, per_page=4):
         super().__init__(ctx, entries=entries, per_page=per_page)
-        self.reaction_emojis.append(
-            ("\N{WHITE QUESTION MARK ORNAMENT}", self.show_bot_help)
-        )
+        self.reaction_emojis.append(paginator.ReactionEmoji("❔", self.show_bot_help))
         self.total = len(entries)
         self.help_command = help_command
         self.prefix = help_command.clean_prefix
@@ -58,7 +56,10 @@ class HelpPaginator(paginator.Pages):
         self.embed.title = "Paginator help"
         self.embed.description = "Hello! Welcome to the help page."
 
-        messages = [f"{emoji} {func.__doc__}" for emoji, func in self.reaction_emojis]
+        messages = [
+            f"{reaction.emoji} {reaction.function.__doc__}"
+            for reaction in self.reaction_emojis
+        ]
         self.embed.clear_fields()
         self.embed.add_field(
             name="What are these reactions for?",
@@ -69,7 +70,7 @@ class HelpPaginator(paginator.Pages):
         self.embed.set_footer(
             text=f"We were on page {self.current_page} before this message."
         )
-        await self.message.edit(embed=self.embed)
+        await self.component_context.edit_origin(embed=self.embed)
 
         async def go_back_to_current_page():
             await asyncio.sleep(30.0)
@@ -107,7 +108,7 @@ class HelpPaginator(paginator.Pages):
         self.embed.set_footer(
             text=f"We were on page {self.current_page} before this message."
         )
-        await self.message.edit(embed=self.embed)
+        await self.component_context.edit_origin(embed=self.embed)
 
         async def go_back_to_current_page():
             await asyncio.sleep(30.0)
@@ -203,7 +204,7 @@ class PaginatedHelpCommand(commands.HelpCommand):
 
     async def send_command_help(self, command):
         # No pagination necessary for a single command.
-        embed = discord.Embed(colour=discord.Colour(14232643))
+        embed = discord.Embed(colour=self.bot.color)
         self.common_command_formatting(embed, command)
         await self.context.reply(embed=embed)
 
