@@ -8,13 +8,7 @@ import ujson
 from tortoise import fields
 from tortoise.models import Model
 
-# yes, this is a copy from common.utils
-# but circular imports are a thing
-def yesno_friendly_str(bool_to_convert):
-    if bool_to_convert == True:
-        return "yes"
-    else:
-        return "no"
+from common.utils import yesno_friendly_str
 
 
 class Status(Enum):
@@ -52,9 +46,7 @@ class SetField(fields.BinaryField, set):
 
 
 class StatusEnumField(fields.IntField, Status):
-    """
-    An extension to CharField that allows storing Statuses.
-    """
+    """An extension to CharField that allows storing Statuses."""
 
     def __init__(self, **kwargs):
         super().__init__(False, **kwargs)
