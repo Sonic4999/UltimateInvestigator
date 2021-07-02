@@ -12,7 +12,6 @@ from websockets import ConnectionClosedOK
 
 import common.utils as utils
 from common.help_cmd import PaginatedHelpCommand
-from common.models import Config
 
 load_dotenv()
 
@@ -32,7 +31,7 @@ async def helper_prefixes(bot: commands.Bot, msg: discord.Message):
     mention_prefixes = {f"{bot.user.mention} ", f"<@!{bot.user.id}> "}
 
     try:
-        guild_config = await Config.filter(guild_id=msg.guild.id).first()
+        guild_config = await utils.get_or_create_guild_config(msg.guild.id)
         custom_prefixes = guild_config.prefixes
     except AttributeError:
         # prefix handling runs before command checks, so there's a chance there's no guild

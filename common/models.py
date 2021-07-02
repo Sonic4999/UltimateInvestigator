@@ -66,15 +66,44 @@ class StatusEnumField(fields.IntField, Status):
             )
 
 
+class GuildConfig(Model):
+    id = fields.IntField(pk=True)
+    guild_id = fields.BigIntField()
+    player_role = fields.BigIntField()
+    prefixes = SetField()
+
+    bullet_config: fields.ReverseRelation["BulletConfig"]
+    bullets: fields.ReverseRelation["TruthBullet"]
+    cards: fields.ReverseRelation["Card"]
+    interactions: fields.ReverseRelation["UserInteraction"]
+
+
+class BulletConfig(Model):
+    id = fields.IntField(pk=True)
+    bullet_chan_id = fields.BigIntField()
+    ult_detective_role = fields.BigIntField()
+    bullets_enabled = fields.BooleanField(default=False)
+    bullet_default_perms_check = fields.BooleanField(default=True)
+    bullet_custom_perm_roles = SetField()
+    guild: fields.OneToOneRelation[GuildConfig] = fields.OneToOneField(
+        "models.GuildConfig",
+        on_delete=fields.CASCADE,
+        related_name="bullet_config",
+        to_field="id",
+    )
+
+
 class TruthBullet(Model):
     id = fields.IntField(pk=True)
     name = fields.CharField(max_length=100)
     aliases = SetField()
     description = fields.TextField()
     channel_id = fields.BigIntField()
-    guild_id = fields.BigIntField()
     found = fields.BooleanField()
     finder = fields.BigIntField()
+    guild: fields.ForeignKeyRelation[GuildConfig] = fields.ForeignKeyField(
+        "models.GuildConfig", related_name="bullets", to_field="id"
+    )
 
     def chan_mention(self):
         return f"<#{self.channel_id}>"
@@ -108,12 +137,14 @@ class TruthBullet(Model):
 
 class Card(Model):
     id = fields.IntField(pk=True)
-    guild_id = fields.BigIntField()
     user_id = fields.BigIntField()
     oc_name = fields.CharField(max_length=100)
     oc_talent = fields.CharField(max_length=100)
     card_url = fields.TextField()
     _status = StatusEnumField()
+    guild: fields.ForeignKeyRelation[GuildConfig] = fields.ForeignKeyField(
+        "models.GuildConfig", related_name="cards", to_field="id"
+    )
 
     @property
     def mention(self):
@@ -143,18 +174,8 @@ class Card(Model):
 
 class UserInteraction(Model):
     id: int = fields.IntField(pk=True)
-    guild_id = fields.BigIntField()
     user_id = fields.BigIntField()
     interactions = fields.DecimalField(4, 1)
-
-
-class Config(Model):
-    id = fields.IntField(pk=True)
-    guild_id = fields.BigIntField()
-    bullet_chan_id = fields.BigIntField()
-    ult_detective_role = fields.BigIntField()
-    player_role = fields.BigIntField()
-    bullets_enabled = fields.BooleanField(default=False)
-    prefixes = SetField()
-    bullet_default_perms_check = fields.BooleanField(default=True)
-    bullet_custom_perm_roles = SetField()
+    guild: fields.ForeignKeyRelation[GuildConfig] = fields.ForeignKeyField(
+        "models.GuildConfig", related_name="interactions", to_field="id"
+    )

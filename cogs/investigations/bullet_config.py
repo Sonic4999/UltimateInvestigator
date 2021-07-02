@@ -14,12 +14,12 @@ class BulletConfigCMDs(commands.Cog, name="Bullet Config"):
     def __init__(self, bot):
         self.bot = bot
 
-    def truth_bullet_managers(self, guild_config: models.Config):
+    def truth_bullet_managers(self, bullet_config: models.BulletConfig):
         role_str_builder = []
-        if guild_config.bullet_default_perms_check:
+        if bullet_config.bullet_default_perms_check:
             role_str_builder.append("Members with `Manage Server` permissions")
 
-        for role_id in guild_config.bullet_custom_perm_roles:
+        for role_id in bullet_config.bullet_custom_perm_roles:
             role_str_builder.append(f"<@&{role_id}>")
 
         return f"Can Manage Truth Bullets: {', '.join(role_str_builder)}"
@@ -31,24 +31,24 @@ class BulletConfigCMDs(commands.Cog, name="Bullet Config"):
         Requires being able to Manage Truth Bullets."""
         # sourcery skip: merge-list-append
         async with ctx.typing():
-            guild_config = await utils.create_and_or_get(ctx.guild.id)
+            bullet_config = await utils.get_or_create_bullet_config(ctx.guild.id)
 
             str_builder = []
             str_builder.append(
-                f"Truth Bullets: {utils.toggle_friendly_str(guild_config.bullets_enabled)}"
+                f"Truth Bullets: {utils.toggle_friendly_str(bullet_config.bullets_enabled)}"
             )
             str_builder.append(
-                f"Truth Bullet channel: {f'<#{guild_config.bullet_chan_id}>' if guild_config.bullet_chan_id > 0 else 'None'}"
+                f"Truth Bullet channel: {f'<#{bullet_config.bullet_chan_id}>' if bullet_config.bullet_chan_id > 0 else 'None'}"
             )
             str_builder.append("")
             str_builder.append(
-                f"Player role: {f'<@&{guild_config.player_role}>' if guild_config.player_role > 0 else 'None'}"
+                f"Player role: {f'<@&{bullet_config.guild.player_role}>' if bullet_config.guild.player_role > 0 else 'None'}"
             )
             str_builder.append(
-                f"Best Detective role: {f'<@&{guild_config.ult_detective_role}>' if guild_config.ult_detective_role > 0 else 'None'}"
+                f"Best Detective role: {f'<@&{bullet_config.ult_detective_role}>' if bullet_config.ult_detective_role > 0 else 'None'}"
             )
 
-            str_builder.append(self.truth_bullet_managers(guild_config))
+            str_builder.append(self.truth_bullet_managers(bullet_config))
 
             embed = discord.Embed(
                 title=f"Server config for {ctx.guild.name}",
@@ -66,9 +66,9 @@ class BulletConfigCMDs(commands.Cog, name="Bullet Config"):
         The channel could be its mention, its ID, or its name.
         Requires being able to Manage Truth Bullets."""
         async with ctx.typing():
-            guild_config = await utils.create_and_or_get(ctx.guild.id)
-            guild_config.bullet_chan_id = channel.id
-            await guild_config.save()
+            bullet_config = await utils.get_or_create_bullet_config(ctx.guild.id)
+            bullet_config.bullet_chan_id = channel.id
+            await bullet_config.save()
 
         await ctx.reply(f"Truth Bullet channel set to {channel.mention}!")
 
@@ -106,9 +106,9 @@ class BulletConfigCMDs(commands.Cog, name="Bullet Config"):
             utils.role_check(ctx, role)
 
         async with ctx.typing():
-            guild_config = await utils.create_and_or_get(ctx.guild.id)
-            guild_config.ult_detective_role = role.id
-            await guild_config.save()
+            bullet_config = await utils.get_or_create_bullet_config(ctx.guild.id)
+            bullet_config.ult_detective_role = role.id
+            await bullet_config.save()
 
         if isinstance(role, discord.Role):
             await ctx.reply(
@@ -127,7 +127,7 @@ class BulletConfigCMDs(commands.Cog, name="Bullet Config"):
         Requires being able to Manage Truth Bullets."""
 
         async with ctx.typing():
-            guild_config = await utils.create_and_or_get(ctx.guild.id)
+            guild_config = await utils.get_or_create_guild_config(ctx.guild.id)
             guild_config.player_role = role.id
             await guild_config.save()
 
@@ -154,17 +154,17 @@ class BulletConfigCMDs(commands.Cog, name="Bullet Config"):
         To turn on Truth Bullets, you need to set the Player role and the Truth Bullets channel.
         Requires being able to Manage Truth Bullets."""
         async with ctx.typing():
-            guild_config = await utils.create_and_or_get(ctx.guild.id)
+            bullet_config = await utils.get_or_create_bullet_config(ctx.guild.id)
 
             if (
-                not guild_config.bullets_enabled
+                not bullet_config.bullets_enabled
             ):  # if truth bullets will be enabled by this
-                self.enable_check(guild_config)
-            guild_config.bullets_enabled = not guild_config.bullets_enabled
-            await guild_config.save()
+                self.enable_check(bullet_config)
+            bullet_config.bullets_enabled = not bullet_config.bullets_enabled
+            await bullet_config.save()
 
         await ctx.reply(
-            f"Truth Bullets turned {utils.toggle_friendly_str(guild_config.bullets_enabled)}!"
+            f"Truth Bullets turned {utils.toggle_friendly_str(bullet_config.bullets_enabled)}!"
         )
 
     @commands.command(aliases=["enable_bullet"])
@@ -175,11 +175,11 @@ class BulletConfigCMDs(commands.Cog, name="Bullet Config"):
         To turn on Truth Bullets, you need to set the Player role and the Truth Bullets channel.
         Requires being able to Manage Truth Bullets."""
         async with ctx.typing():
-            guild_config = await utils.create_and_or_get(ctx.guild.id)
+            bullet_config = await utils.get_or_create_bullet_config(ctx.guild.id)
 
-            self.enable_check(guild_config)
-            guild_config.bullets_enabled = True
-            await guild_config.save()
+            self.enable_check(bullet_config)
+            bullet_config.bullets_enabled = True
+            await bullet_config.save()
 
         await ctx.reply("Truth Bullets enabled!")
 
@@ -191,9 +191,9 @@ class BulletConfigCMDs(commands.Cog, name="Bullet Config"):
         This is automatically done after all Truth Bullets have been found.
         Requires being able to Manage Truth Bullets."""
         async with ctx.typing():
-            guild_config = await utils.create_and_or_get(ctx.guild.id)
-            guild_config.bullets_enabled = False
-            await guild_config.save()
+            bullet_config = await utils.get_or_create_bullet_config(ctx.guild.id)
+            bullet_config.bullets_enabled = False
+            await bullet_config.save()
 
         await ctx.reply("Truth Bullets disabled!")
 
@@ -209,10 +209,10 @@ class BulletConfigCMDs(commands.Cog, name="Bullet Config"):
         All commands here require Manage Guild permissions."""
 
         async with ctx.typing():
-            guild_config = await utils.create_and_or_get(ctx.guild.id)
+            bullet_config = await utils.get_or_create_bullet_config(ctx.guild.id)
 
         await ctx.reply(
-            self.truth_bullet_managers(guild_config),
+            self.truth_bullet_managers(bullet_config),
             allowed_mentions=utils.deny_mentions(ctx.author),
         )
 
@@ -225,9 +225,9 @@ class BulletConfigCMDs(commands.Cog, name="Bullet Config"):
         Requires Manage Guild permissions."""
 
         async with ctx.typing():
-            guild_config = await utils.create_and_or_get(ctx.guild.id)
-            guild_config.bullet_default_perms_check = toggle
-            await guild_config.save()
+            bullet_config = await utils.get_or_create_bullet_config(ctx.guild.id)
+            bullet_config.bullet_default_perms_check = toggle
+            await bullet_config.save()
 
         toggle_str = "can" if toggle else "cannot"
         await ctx.reply(
@@ -241,15 +241,15 @@ class BulletConfigCMDs(commands.Cog, name="Bullet Config"):
         Requires Manage Guild permissions."""
 
         async with ctx.typing():
-            guild_config = await utils.create_and_or_get(ctx.guild.id)
+            bullet_config = await utils.get_or_create_bullet_config(ctx.guild.id)
 
-            if role.id in guild_config.bullet_custom_perm_roles:
+            if role.id in bullet_config.bullet_custom_perm_roles:
                 raise commands.BadArgument(
                     "This role is already allowed to Manage Truth Bullets!"
                 )
 
-            guild_config.bullet_custom_perm_roles.add(role.id)
-            await guild_config.save()
+            bullet_config.bullet_custom_perm_roles.add(role.id)
+            await bullet_config.save()
 
         await ctx.reply(
             f"{role.mention} can now Manage Truth Bullets.",
@@ -263,11 +263,11 @@ class BulletConfigCMDs(commands.Cog, name="Bullet Config"):
         Requires Manage Guild permissions."""
 
         async with ctx.typing():
-            guild_config = await utils.create_and_or_get(ctx.guild.id)
+            bullet_config = await utils.get_or_create_bullet_config(ctx.guild.id)
 
             try:
-                guild_config.bullet_custom_perm_roles.remove(role.id)
-                await guild_config.save()
+                bullet_config.bullet_custom_perm_roles.remove(role.id)
+                await bullet_config.save()
             except KeyError:
                 raise commands.BadArgument(
                     "This role is already not allowed to Manage Truth Bullets!"

@@ -15,17 +15,17 @@ import common.models as models
 
 def bullet_proper_perms():
     async def predicate(ctx: commands.Context):
-        guild_config = await create_and_or_get(ctx.guild.id)
+        bullet_config = await get_or_create_bullet_config(ctx.guild.id)
 
         default_perms = False
-        if guild_config.bullet_default_perms_check:
+        if bullet_config.bullet_default_perms_check:
             # checks if author has admin or manage guild perms or is the owner
             permissions = ctx.channel.permissions_for(ctx.author)
             default_perms = permissions.administrator or permissions.manage_guild
 
         # checks to see if the internal role list for the user has any of the roles specified in the roles specified
         role_perms = any(
-            ctx.author._roles.has(r) for r in guild_config.bullet_custom_perm_roles
+            ctx.author._roles.has(r) for r in bullet_config.bullet_custom_perm_roles
         )
 
         return default_perms or role_perms
@@ -86,21 +86,28 @@ async def msg_to_owner(bot, content, split=True):
         await owner.send(f"{chunk}")
 
 
-async def create_and_or_get(guild_id):
-    possible_guild = await models.Config.filter(guild_id=guild_id).first()
-    if possible_guild is None:
-        return await models.Config.create(
-            guild_id=guild_id,
-            bullet_chan_id=0,
-            ult_detective_role=0,
-            player_role=0,
-            bullets_enabled=False,
-            prefixes={"v!"},
-            bullet_default_perms_check=True,
-            bullet_custom_perm_roles=set(),
-        )
-    else:
-        return possible_guild
+async def get_or_create_guild_config(guild_id):
+    defaults = {
+        "guild_id": guild_id,
+        "prefixes": {"v!"},
+        "player_role": 0,
+    }
+    result, _ = await models.GuildConfig.get_or_create(defaults, guild_id=guild_id)
+    return result
+
+
+async def get_or_create_bullet_config(guild_id):
+    defaults = {
+        "guild_id": guild_id,
+        "bullet_chan_id": 0,
+        "ult_detective_role": 0,
+        "player_role": 0,
+        "bullets_enabled": False,
+        "bullet_default_perms_check": True,
+        "bullet_custom_perm_roles": set(),
+    }
+    result, _ = await models.BulletConfig.get_or_create(defaults, guild__id=guild_id)
+    return result
 
 
 def line_split(content: str, split_by=20):

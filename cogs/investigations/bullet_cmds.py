@@ -56,6 +56,7 @@ class BulletCMDs(commands.Cog, name="Bullet"):
                 guild_id=ctx.guild.id,
                 found=False,
                 finder=0,
+                guild_id=ctx.guild.id,
             )
 
         await ctx.reply("Added Truth Bullet!")
@@ -87,7 +88,7 @@ class BulletCMDs(commands.Cog, name="Bullet"):
         Requires being able to Manage Truth Bullets."""
         async with ctx.typing():
             num_deleted = await models.TruthBullet.filter(
-                guild_id=ctx.guild.id
+                guild__id=ctx.guild.id
             ).delete()
 
         # just to give a more clear indication to users
@@ -106,7 +107,7 @@ class BulletCMDs(commands.Cog, name="Bullet"):
         Will also show if the Truth Bullet has been found or not.
         Requires being able to Manage Truth Bullets."""
         async with ctx.typing():
-            guild_bullets = await models.TruthBullet.filter(guild_id=ctx.guild.id)
+            guild_bullets = await models.TruthBullet.filter(guild__id=ctx.guild.id)
             if not guild_bullets:
                 raise utils.CustomCheckFailure(
                     "There's no Truth Bullets for this server!"
