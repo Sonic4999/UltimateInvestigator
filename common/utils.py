@@ -88,7 +88,7 @@ async def msg_to_owner(bot, content, split=True):
 
 async def get_or_create_guild_config(guild_id):
     defaults = {
-        "guild_id": guild_id,
+        "id": guild_id,
         "prefixes": {"v!"},
         "player_role": 0,
     }

@@ -67,8 +67,7 @@ class StatusEnumField(fields.IntField, Status):
 
 
 class GuildConfig(Model):
-    id = fields.IntField(pk=True)
-    guild_id = fields.BigIntField()
+    id = fields.IntField(pk=True, generated=False)
     player_role = fields.BigIntField()
     prefixes = SetField()
 
