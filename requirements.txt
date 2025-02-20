@@ -5,7 +5,7 @@ pydantic==2.10.6
 git+https://github.com/MarkusSintonen/httpcore.git@e724565270603a72d11f6d3bfc09671ffcfe36f2
 httpx[http2]==0.28.1
 aiodns==3.2.0
-humanize==4.11.0
+humanize==4.12.1
 python-dotenv==1.0.1
 orjson==3.10.15; implementation_name == "cpython"
 rapidfuzz==3.12.1
